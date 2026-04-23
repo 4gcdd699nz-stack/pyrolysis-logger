@@ -9,7 +9,7 @@ async function getAccessToken() {
   const now = Math.floor(Date.now() / 1000);
   const { SignJWT, importPKCS8 } = await import('jose');
   const privateKey = await importPKCS8(creds.private_key, 'RS256');
-  const jwt = await new SignJWT({})
+  const jwt = await new SignJWT({ scope: 'https://www.googleapis.com/auth/drive' })
     .setProtectedHeader({ alg: 'RS256' })
     .setIssuedAt(now)
     .setExpirationTime(now + 3600)
