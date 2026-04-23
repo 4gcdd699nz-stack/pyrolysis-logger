@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Boiler Log — Data Entry</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue:#185FA5; --blue-lt:#E6F1FB; --blue-dk:#0C447C;
+  --green:#0F6E56; --green-lt:#E1F5EE;
+  --red:#A32D2D; --red-lt:#FCEBEB;
+  --amber:#BA7517; --amber-lt:#FAEEDA;
+  --gray-50:#F8F8F7; --gray-100:#EFEFED; --gray-200:#DDDCDA;
+  --gray-400:#AEADA8; --gray-500:#888780; --gray-700:#4A4A47; --gray-900:#1A1A18;
+  --radius:12px; --radius-sm:8px;
+}
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--gray-50); color:var(--gray-900); min-height:100vh; }
+header { background:#fff; border-bottom:1px solid var(--gray-100); padding:14px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+.logo { width:34px; height:34px; background:var(--blue); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.logo svg { width:18px; height:18px; stroke:#fff; fill:none; stroke-width:2; }
+header h1 { font-size:16px; font-weight:600; line-height:1.2; }
+header p { font-size:12px; color:var(--gray-500); }
+main { max-width:540px; margin:0 auto; padding:20px 16px 60px; }
+
+/* progress bar */
+.progress { display:flex; align-items:center; gap:0; margin-bottom:24px; }
+.step { display:flex; flex-direction:column; align-items:center; flex:1; }
+.step-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; border:2px solid var(--gray-200); background:#fff; color:var(--gray-400); transition:all 0.2s; }
+.step-dot.active { border-color:var(--blue); background:var(--blue); color:#fff; }
+.step-dot.done { border-color:var(--green); background:var(--green); color:#fff; }
+.step-label { font-size:10px; color:var(--gray-500); margin-top:4px; text-align:center; }
+.step-line { flex:1; height:2px; background:var(--gray-200); margin-top:-18px; transition:background 0.2s; }
+.step-line.done { background:var(--green); }
+
+/* cards */
+.card { background:#fff; border:1px solid var(--gray-100); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+.card-title { font-size:13px; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:.05em; margin-bottom:16px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field { display:flex; flex-direction:column; gap:5px; }
+.field.full { grid-column:span 2; }
+.field label { font-size:12px; color:var(--gray-500); font-weight:500; }
+.field input, .field select {
+  font-size:15px; padding:10px 12px;
+  border:1.5px solid var(--gray-200); border-radius:var(--radius-sm);
+  background:#fff; color:var(--gray-900); width:100%;
+  -webkit-appearance:none; appearance:none;
+}
+.field input:focus, .field select:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-lt); }
+
+/* parameter block */
+.param-block { border:1px solid var(--gray-100); border-radius:var(--radius-sm); overflow:hidden; margin-bottom:12px; }
+.param-header { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--gray-50); border-bottom:1px solid var(--gray-100); }
+.param-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.param-icon.temp-boiler { background:#FEF3CD; }
+.param-icon.temp-cond { background:#D1F0E8; }
+.param-icon.pres-cond { background:#D6E8F8; }
+.param-icon svg { width:16px; height:16px; }
+.param-title { font-size:14px; font-weight:600; }
+.param-unit { font-size:12px; color:var(--gray-500); }
+.param-body { padding:14px; }
+.value-input-row { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.value-input-row input { flex:1; font-size:22px; font-weight:600; text-align:center; padding:10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); }
+.value-input-row input:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-lt); }
+.value-input-row .unit-tag { font-size:14px; color:var(--gray-500); font-weight:500; white-space:nowrap; min-width:36px; }
+.photo-zone { border:2px dashed var(--gray-200); border-radius:var(--radius-sm); padding:16px 12px; text-align:center; cursor:pointer; background:var(--gray-50); transition:all 0.15s; }
+.photo-zone:hover { border-color:var(--blue); background:var(--blue-lt); }
+.photo-zone.has-photo { border-style:solid; border-color:var(--green); background:var(--green-lt); }
+.photo-zone svg { width:20px; height:20px; margin:0 auto 6px; display:block; }
+.photo-zone p { font-size:13px; font-weight:500; }
+.photo-zone span { font-size:11px; color:var(--gray-500); }
+.photo-preview { width:100%; max-height:160px; object-fit:cover; border-radius:var(--radius-sm); display:block; margin-top:8px; }
+.retake-btn { font-size:11px; color:var(--blue); background:none; border:none; cursor:pointer; margin-top:6px; display:inline-block; }
+
+/* buttons */
+.btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px; border-radius:var(--radius-sm); font-size:15px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; }
+.btn:active { transform:scale(0.98); }
+.btn-primary { background:var(--blue); color:#fff; }
+.btn-primary:hover { background:var(--blue-dk); }
+.btn-primary:disabled { background:var(--gray-200); color:var(--gray-400); cursor:not-allowed; transform:none; }
+.btn-outline { background:#fff; color:var(--gray-700); border:1.5px solid var(--gray-200); }
+.btn-outline:hover { background:var(--gray-50); }
+.btn-row { display:flex; gap:10px; }
+
+/* status */
+.upload-status { font-size:12px; color:var(--gray-500); display:flex; align-items:center; gap:6px; margin-top:6px; }
+.upload-status.uploading { color:var(--blue); }
+.upload-status.done { color:var(--green); }
+.upload-status.error { color:var(--red); }
+.spinner { width:12px; height:12px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* success */
+.success-card { text-align:center; padding:36px 20px; }
+.check-circle { width:64px; height:64px; background:var(--green-lt); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+.check-circle svg { width:30px; height:30px; stroke:var(--green); fill:none; stroke-width:2.5; }
+
+/* required star */
+.req { color:var(--red); margin-left:2px; }
+
+.hidden { display:none !important; }
+
+.section-nav { display:flex; gap:8px; margin-top:4px; }
+
+.error-msg { font-size:12px; color:var(--red); margin-top:4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+  </div>
+  <div>
+    <h1>Boiler Operations Log</h1>
+    <p>Tyre Pyrolysis Plant</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- STEP INDICATOR -->
+  <div class="progress" id="progress-bar">
+    <div class="step">
+      <div class="step-dot active" id="dot-1">1</div>
+      <div class="step-label">Details</div>
+    </div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step">
+      <div class="step-dot" id="dot-2">2</div>
+      <div class="step-label">Readings</div>
+    </div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step">
+      <div class="step-dot" id="dot-3">3</div>
+      <div class="step-label">Submit</div>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: Worker details -->
+  <div id="screen-1">
+    <div class="card">
+      <div class="card-title">Worker details</div>
+      <div class="form-grid">
+        <div class="field full">
+          <label>Worker name <span class="req">*</span></label>
+          <input type="text" id="f-name" placeholder="Enter your name" autocomplete="name" />
+        </div>
+        <div class="field full">
+          <label>Boiler unit <span class="req">*</span></label>
+          <select id="f-boiler">
+            <option value="">— Select boiler —</option>
+            <option value="Boiler 1">Boiler 1</option>
+            <option value="Boiler 2">Boiler 2</option>
+            <option value="Boiler 3">Boiler 3</option>
+            <option value="Boiler 4">Boiler 4</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" id="f-date" />
+        </div>
+        <div class="field">
+          <label>Time <span class="req">*</span></label>
+          <input type="time" id="f-time" />
+        </div>
+        <div class="field full">
+          <label>Shift</label>
+          <select id="f-shift">
+            <option value="Morning (6am–2pm)">Morning (6am–2pm)</option>
+            <option value="Afternoon (2pm–10pm)">Afternoon (2pm–10pm)</option>
+            <option value="Night (10pm–6am)">Night (10pm–6am)</option>
+          </select>
+        </div>
+      </div>
+      <div id="err-1" class="error-msg hidden"></div>
+    </div>
+    <button class="btn btn-primary" onclick="goToStep2()">
+      Next — Enter readings
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+
+  <!-- SCREEN 2: Data entry + photos -->
+  <div id="screen-2" class="hidden">
+
+    <!-- Boiler Temperature -->
+    <div class="param-block">
+      <div class="param-header">
+        <div class="param-icon temp-boiler">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+        </div>
+        <div>
+          <div class="param-title">Boiler temperature</div>
+          <div class="param-unit">Enter value &amp; attach photo</div>
+        </div>
+      </div>
+      <div class="param-body">
+        <div class="value-input-row">
+          <input type="number" id="val-boiler-temp" placeholder="0" min="0" max="1200" step="0.1" />
+          <span class="unit-tag">°C</span>
+        </div>
+        <input type="file" id="photo-boiler-temp" accept="image/*" capture="environment" class="hidden" onchange="handlePhoto('boiler-temp', event)" />
+        <div class="photo-zone" id="zone-boiler-temp" onclick="document.getElementById('photo-boiler-temp').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <p>Tap to attach photo</p>
+          <span>Required — photo of gauge reading</span>
+        </div>
+        <div class="upload-status hidden" id="status-boiler-temp"></div>
+      </div>
+    </div>
+
+    <!-- Condenser Temperature -->
+    <div class="param-block">
+      <div class="param-header">
+        <div class="param-icon temp-cond">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#065F46" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+        </div>
+        <div>
+          <div class="param-title">Condenser temperature</div>
+          <div class="param-unit">Enter value &amp; attach photo</div>
+        </div>
+      </div>
+      <div class="param-body">
+        <div class="value-input-row">
+          <input type="number" id="val-cond-temp" placeholder="0" min="0" max="500" step="0.1" />
+          <span class="unit-tag">°C</span>
+        </div>
+        <input type="file" id="photo-cond-temp" accept="image/*" capture="environment" class="hidden" onchange="handlePhoto('cond-temp', event)" />
+        <div class="photo-zone" id="zone-cond-temp" onclick="document.getElementById('photo-cond-temp').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <p>Tap to attach photo</p>
+          <span>Required — photo of gauge reading</span>
+        </div>
+        <div class="upload-status hidden" id="status-cond-temp"></div>
+      </div>
+    </div>
+
+    <!-- Condenser Pressure -->
+    <div class="param-block">
+      <div class="param-header">
+        <div class="param-icon pres-cond">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <div>
+          <div class="param-title">Condenser pressure</div>
+          <div class="param-unit">Enter value &amp; attach photo</div>
+        </div>
+      </div>
+      <div class="param-body">
+        <div class="value-input-row">
+          <input type="number" id="val-cond-pres" placeholder="0.00" min="0" max="10" step="0.01" />
+          <span class="unit-tag">MPa</span>
+        </div>
+        <input type="file" id="photo-cond-pres" accept="image/*" capture="environment" class="hidden" onchange="handlePhoto('cond-pres', event)" />
+        <div class="photo-zone" id="zone-cond-pres" onclick="document.getElementById('photo-cond-pres').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <p>Tap to attach photo</p>
+          <span>Required — photo of gauge reading</span>
+        </div>
+        <div class="upload-status hidden" id="status-cond-pres"></div>
+      </div>
+    </div>
+
+    <div id="err-2" class="error-msg hidden" style="margin-bottom:12px;"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goToStep1()" style="flex:0 0 auto;width:auto;padding:14px 20px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitAll()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+        Submit entry
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Success -->
+  <div id="screen-3" class="hidden">
+    <div class="card success-card">
+      <div class="check-circle">
+        <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:6px;">Entry submitted!</h2>
+      <p style="font-size:14px;color:var(--gray-500);margin-bottom:6px;">Data saved to Google Sheets.</p>
+      <p style="font-size:14px;color:var(--gray-500);margin-bottom:24px;">Photos uploaded to Google Drive.</p>
+      <div id="sheet-link" style="margin-bottom:20px;"></div>
+      <button class="btn btn-primary" onclick="resetAll()">Log another reading</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── PASTE YOUR VERCEL API BASE URL HERE (no trailing slash) ─────────────────
+const API_BASE = '';   // e.g. 'https://your-app.vercel.app'
+// ─────────────────────────────────────────────────────────────────────────────
+
+const photos = { 'boiler-temp': null, 'cond-temp': null, 'cond-pres': null };
+
+// Set defaults
+(function(){
+  const n = new Date();
+  document.getElementById('f-date').value = n.toISOString().split('T')[0];
+  document.getElementById('f-time').value = n.toTimeString().slice(0,5);
+  const h = n.getHours();
+  document.getElementById('f-shift').value = h < 14 ? 'Morning (6am–2pm)' : h < 22 ? 'Afternoon (2pm–10pm)' : 'Night (10pm–6am)';
+})();
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 4000);
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const dot = document.getElementById('dot-'+i);
+    dot.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+    dot.textContent = i < n ? '✓' : i;
+  });
+  [1,2].forEach(i => {
+    document.getElementById('line-'+i).className = 'step-line' + (i < n ? ' done' : '');
+  });
+  [1,2,3].forEach(i => document.getElementById('screen-'+i).classList.toggle('hidden', i !== n));
+}
+
+function goToStep1() { setStep(1); }
+
+function goToStep2() {
+  const name = document.getElementById('f-name').value.trim();
+  const boiler = document.getElementById('f-boiler').value;
+  const date = document.getElementById('f-date').value;
+  const time = document.getElementById('f-time').value;
+  if (!name) return showErr('err-1', 'Please enter your name.');
+  if (!boiler) return showErr('err-1', 'Please select a boiler unit.');
+  if (!date || !time) return showErr('err-1', 'Please fill in date and time.');
+  setStep(2);
+  window.scrollTo(0,0);
+}
+
+function handlePhoto(key, event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  photos[key] = file;
+  const zone = document.getElementById('zone-' + key);
+  const reader = new FileReader();
+  reader.onload = e => {
+    zone.classList.add('has-photo');
+    zone.innerHTML = `
+      <img src="${e.target.result}" class="photo-preview" alt="preview"/>
+      <button class="retake-btn" onclick="retakePhoto('${key}', event)">Retake photo</button>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function retakePhoto(key, e) {
+  e.stopPropagation();
+  photos[key] = null;
+  const zone = document.getElementById('zone-' + key);
+  zone.classList.remove('has-photo');
+  zone.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    <p>Tap to attach photo</p>
+    <span>Required — photo of gauge reading</span>`;
+  document.getElementById('photo-' + key).value = '';
+}
+
+function setUploadStatus(key, state, msg) {
+  const el = document.getElementById('status-' + key);
+  el.className = 'upload-status ' + state;
+  el.innerHTML = state === 'uploading' ? `<div class="spinner"></div>${msg}` : msg;
+  el.classList.remove('hidden');
+}
+
+async function submitAll() {
+  // Validate values
+  const bTemp = parseFloat(document.getElementById('val-boiler-temp').value);
+  const cTemp = parseFloat(document.getElementById('val-cond-temp').value);
+  const cPres = parseFloat(document.getElementById('val-cond-pres').value);
+
+  if (isNaN(bTemp)) return showErr('err-2', 'Please enter Boiler Temperature.');
+  if (!photos['boiler-temp']) return showErr('err-2', 'Please attach a photo for Boiler Temperature.');
+  if (isNaN(cTemp)) return showErr('err-2', 'Please enter Condenser Temperature.');
+  if (!photos['cond-temp']) return showErr('err-2', 'Please attach a photo for Condenser Temperature.');
+  if (isNaN(cPres)) return showErr('err-2', 'Please enter Condenser Pressure.');
+  if (!photos['cond-pres']) return showErr('err-2', 'Please attach a photo for Condenser Pressure.');
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-color:#fff;border-top-color:transparent;"></div> Submitting...';
+
+  const meta = {
+    name: document.getElementById('f-name').value.trim(),
+    boiler: document.getElementById('f-boiler').value,
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    shift: document.getElementById('f-shift').value,
+    boilerTemp: bTemp,
+    condTemp: cTemp,
+    condPres: cPres,
+  };
+
+  // Upload photos
+  const uploads = [
+    { key:'boiler-temp', label:'Boiler Temperature' },
+    { key:'cond-temp',   label:'Condenser Temperature' },
+    { key:'cond-pres',   label:'Condenser Pressure' },
+  ];
+
+  const driveLinks = {};
+  for (const u of uploads) {
+    setUploadStatus(u.key, 'uploading', `Uploading ${u.label} photo...`);
+    try {
+      const b64 = await fileToBase64(photos[u.key]);
+      const res = await fetch(API_BASE + '/api/upload-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          base64: b64,
+          mimeType: photos[u.key].type,
+          fileName: `${meta.boiler}_${meta.date}_${meta.time.replace(':','-')}_${u.label.replace(/ /g,'_')}.jpg`,
+          paramKey: u.key,
+          meta
+        })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const { fileUrl } = await res.json();
+      driveLinks[u.key] = fileUrl;
+      setUploadStatus(u.key, 'done', '✓ Photo uploaded to Google Drive');
+    } catch(err) {
+      setUploadStatus(u.key, 'error', '✗ Upload failed — ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Submit entry';
+      return;
+    }
+  }
+
+  // Write to Google Sheets
+  try {
+    const res = await fetch(API_BASE + '/api/log-sheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meta, driveLinks })
+    });
+    if (!res.ok) throw new Error(await res.text());
+  } catch(err) {
+    showErr('err-2', 'Sheet update failed: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Submit entry';
+    return;
+  }
+
+  setStep(3);
+  window.scrollTo(0,0);
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result.split(',')[1]);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function resetAll() {
+  photos['boiler-temp'] = null;
+  photos['cond-temp'] = null;
+  photos['cond-pres'] = null;
+  ['boiler-temp','cond-temp','cond-pres'].forEach(k => {
+    retakePhoto(k, { stopPropagation: ()=>{} });
+    document.getElementById('status-'+k).classList.add('hidden');
+  });
+  ['val-boiler-temp','val-cond-temp','val-cond-pres'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-btn').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Submit entry';
+  const n = new Date();
+  document.getElementById('f-time').value = n.toTimeString().slice(0,5);
+  document.getElementById('f-date').value = n.toISOString().split('T')[0];
+  setStep(1);
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
